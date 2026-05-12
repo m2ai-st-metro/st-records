@@ -33,7 +33,7 @@ class OutcomeRecord(BaseModel):
     Postcondition: record is append-only, written to JSONL + SQLite.
     Invariant: pipeline_trace is chronologically ordered; contract_version always present.
     """
-    contract_version: str = "1.1.0"
+    contract_version: str = "1.2.0"
     idea_id: int
     idea_title: str
     outcome: TerminalOutcome
@@ -48,6 +48,8 @@ class OutcomeRecord(BaseModel):
     tags: list[str] = Field(default_factory=list)
     github_url: str | None = None
     idea_type: str | None = None
+    scene_fidelity_score: float | None = None
+    scene_fidelity_breakdown: dict | None = None
     emitted_at: datetime = Field(default_factory=datetime.now)
 
     @model_validator(mode="after")

@@ -63,7 +63,9 @@ class ContractStore:
                 tags TEXT DEFAULT '[]',
                 github_url TEXT,
                 emitted_at TEXT NOT NULL,
-                raw_json TEXT NOT NULL
+                raw_json TEXT NOT NULL,
+                scene_fidelity_score REAL,
+                scene_fidelity_breakdown TEXT
             );
 
             CREATE TABLE IF NOT EXISTS improvement_recommendations (
@@ -95,6 +97,18 @@ class ContractStore:
             try:
                 conn.execute(
                     f"ALTER TABLE improvement_recommendations ADD COLUMN {col} {col_type}"
+                )
+            except sqlite3.OperationalError:
+                pass  # Column already exists
+
+        # Migration: add scene_fidelity columns to legacy outcome_records DBs
+        for col, col_type in [
+            ("scene_fidelity_score", "REAL"),
+            ("scene_fidelity_breakdown", "TEXT"),
+        ]:
+            try:
+                conn.execute(
+                    f"ALTER TABLE outcome_records ADD COLUMN {col} {col_type}"
                 )
             except sqlite3.OperationalError:
                 pass  # Column already exists
@@ -154,8 +168,9 @@ class ContractStore:
             """INSERT INTO outcome_records
             (idea_id, idea_title, outcome, overall_score, recommendation,
              capabilities_fit, build_outcome, artifact_count, tech_stack,
-             total_duration_seconds, tags, github_url, emitted_at, raw_json)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+             total_duration_seconds, tags, github_url, emitted_at, raw_json,
+             scene_fidelity_score, scene_fidelity_breakdown)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
             (
                 record.idea_id,
                 record.idea_title,
@@ -171,6 +186,8 @@ class ContractStore:
                 record.github_url,
                 record.emitted_at.isoformat(),
                 record.model_dump_json(),
+                record.scene_fidelity_score,
+                json.dumps(record.scene_fidelity_breakdown) if record.scene_fidelity_breakdown is not None else None,
             ),
         )
         conn.commit()
