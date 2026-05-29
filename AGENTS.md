@@ -15,15 +15,14 @@ pytest tests/ -v
 # Run loop status
 python scripts/loop_status.py
 
-# Run persona upgrader (dry-run)
-python scripts/persona_upgrader.py --dry-run
-
-# Run full loop (dry-run)
+# Run feedback loop (dry-run)
 ./scripts/run_loop.sh --dry-run
 
-# Run full loop (live - requires ANTHROPIC_API_KEY)
+# Run feedback loop (live)
 ./scripts/run_loop.sh
 ```
+
+> **Retired 2026-05-28**: The persona-template flow (`scripts/persona_upgrader.py`, `scripts/review_patch.py`, the `api/` FastAPI layer, Academy reader) was removed; cold-archived at `~/projects/skill-forge/archive/st-records-persona-templates-2026-05-28/`. The contract DB and the outcomes/recommendations/research_signals contracts are untouched.
 
 ## Key Paths
 
@@ -32,20 +31,13 @@ python scripts/persona_upgrader.py --dry-run
 | `contracts/` | Pydantic models for inter-layer contracts |
 | `data/*.jsonl` | Append-only data files (source of truth) |
 | `data/persona_metrics.db` | SQLite query layer (rebuildable) |
-| `scripts/run_loop.sh` | Full feedback loop orchestrator |
-| `scripts/persona_upgrader.py` | Generates persona patches from recommendations |
+| `scripts/run_loop.sh` | Feedback loop orchestrator |
 | `scripts/loop_status.py` | Reports loop health |
 | `cron/st-records` | Cron configuration for weekly execution |
-
-## Environment Variables
-
-| Variable | Required | Purpose |
-|----------|----------|---------|
-| `ANTHROPIC_API_KEY` | For persona_upgrader | Claude API for patch generation |
 
 ## Dependencies
 
 - Python 3.11+
 - Sky-Lynx (at `~/projects/sky-lynx/`)
-- Ultra Magnus (at `~/projects/ultra-magnus/`)
-- ST Agent Registry (at `~/projects/st-agent-registry/`)
+- Metroplex (at `~/projects/metroplex/`)
+- Research Agents (at `~/projects/research-agents/`)

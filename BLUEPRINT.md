@@ -1,5 +1,13 @@
 # Snow-Town Blueprint
 
+> **Retired 2026-05-28 — persona-template subsystem removed.** This is a historical phase
+> tracker. The completed checkboxes below referencing `persona_upgrader.py`, `review_patch.py`,
+> `PersonaUpgradePatch`, the Agent Persona Academy reader, and the FastAPI data API (Phase 7a,
+> and the A2A FastAPI item in Phase 9) describe machinery that was retired after a liveness audit
+> found no live consumer. The dead code is cold-archived at
+> `~/projects/skill-forge/archive/st-records-persona-templates-2026-05-28/`. The contract store
+> for outcomes / recommendations / research signals remains live and load-bearing.
+
 ## Phase Tracking
 
 ### Phase 0: Cleanup Dead Code

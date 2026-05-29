@@ -1,5 +1,14 @@
 ## Snow-Town Project Review
 
+> **Retired 2026-05-28 — persona-template subsystem removed.** This review describes the
+> original three-layer design including the **Agent Persona Academy**, `PersonaUpgradePatch`
+> flow, `persona_upgrader`, and the FastAPI **read-only API layer** + 3D dashboard. Those were
+> retired after a liveness audit found no live consumer. What remains live is the **contract
+> store** for `OutcomeRecord`, `ImprovementRecommendation`, and `ResearchSignal` (Metroplex →
+> Sky-Lynx, Research Agents → Sky-Lynx). Treat any Academy / persona-patch / FastAPI / dashboard
+> mention below as historical. Dead code cold-archived at
+> `~/projects/skill-forge/archive/st-records-persona-templates-2026-05-28/`.
+
 ### What It Is
 
 Snow-Town is a **closed-loop learning ecosystem** — an orchestration layer that wires three independent projects into a self-improving feedback triangle:

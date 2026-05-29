@@ -14,7 +14,6 @@ from pydantic import BaseModel
 
 from .improvement_recommendation import ImprovementRecommendation
 from .outcome_record import OutcomeRecord
-from .persona_upgrade_patch import PersonaUpgradePatch
 from .research_signal import ResearchSignal
 
 T = TypeVar("T", bound=BaseModel)
@@ -114,19 +113,6 @@ class ContractStore:
                 pass  # Column already exists
 
         conn.executescript("""
-            CREATE TABLE IF NOT EXISTS persona_patches (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                patch_id TEXT NOT NULL UNIQUE,
-                persona_id TEXT NOT NULL,
-                rationale TEXT,
-                from_version TEXT,
-                to_version TEXT,
-                schema_valid INTEGER DEFAULT 1,
-                status TEXT DEFAULT 'proposed',
-                emitted_at TEXT NOT NULL,
-                raw_json TEXT NOT NULL
-            );
-
             CREATE TABLE IF NOT EXISTS research_signals (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
                 signal_id TEXT NOT NULL UNIQUE,
@@ -149,7 +135,6 @@ class ContractStore:
         paths = {
             "outcome_record": self.data_dir / "outcome_records.jsonl",
             "improvement_recommendation": self.data_dir / "improvement_recommendations.jsonl",
-            "persona_patch": self.data_dir / "persona_patches.jsonl",
             "research_signal": self.data_dir / "research_signals.jsonl",
         }
         return paths[contract_type]
@@ -375,88 +360,6 @@ class ContractStore:
         ).fetchall()
         return {row["effectiveness"]: {"count": row["count"], "avg_score": row["avg_score"]} for row in rows}
 
-    # --- PersonaUpgradePatch ---
-
-    def _insert_patch_sqlite(self, patch: PersonaUpgradePatch) -> None:
-        """Insert a PersonaUpgradePatch into SQLite only."""
-        conn = self._get_conn()
-        conn.execute(
-            """INSERT OR REPLACE INTO persona_patches
-            (patch_id, persona_id, rationale, from_version, to_version,
-             schema_valid, status, emitted_at, raw_json)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)""",
-            (
-                patch.patch_id,
-                patch.persona_id,
-                patch.rationale,
-                patch.from_version,
-                patch.to_version,
-                1 if patch.schema_valid else 0,
-                patch.status,
-                patch.emitted_at.isoformat(),
-                patch.model_dump_json(),
-            ),
-        )
-        conn.commit()
-
-    def write_patch(self, patch: PersonaUpgradePatch) -> None:
-        """Write a PersonaUpgradePatch to JSONL and SQLite."""
-        self._append_jsonl("persona_patch", patch)
-        self._insert_patch_sqlite(patch)
-
-    def read_patches(self, limit: int = 100) -> list[PersonaUpgradePatch]:
-        """Read PersonaUpgradePatches from JSONL."""
-        path = self._jsonl_path("persona_patch")
-        if not path.exists():
-            return []
-        records = []
-        for line in path.read_text().strip().splitlines():
-            if line:
-                records.append(PersonaUpgradePatch.model_validate_json(line))
-        return records[-limit:]
-
-    def query_patches(
-        self,
-        persona_id: str | None = None,
-        status: str | None = None,
-        limit: int = 100,
-    ) -> list[PersonaUpgradePatch]:
-        """Query PersonaUpgradePatches from SQLite.
-
-        Overlays current SQLite status onto deserialized objects,
-        since raw_json retains the original write-time status.
-        """
-        conn = self._get_conn()
-        query = "SELECT raw_json, status AS current_status FROM persona_patches"
-        conditions: list[str] = []
-        params: list = []
-        if persona_id:
-            conditions.append("persona_id = ?")
-            params.append(persona_id)
-        if status:
-            conditions.append("status = ?")
-            params.append(status)
-        if conditions:
-            query += " WHERE " + " AND ".join(conditions)
-        query += " ORDER BY emitted_at DESC LIMIT ?"
-        params.append(limit)
-        rows = conn.execute(query, params).fetchall()
-        results = []
-        for row in rows:
-            patch = PersonaUpgradePatch.model_validate_json(row["raw_json"])
-            patch.status = row["current_status"]
-            results.append(patch)
-        return results
-
-    def update_patch_status(self, patch_id: str, status: str) -> None:
-        """Update the status of a patch in SQLite."""
-        conn = self._get_conn()
-        conn.execute(
-            "UPDATE persona_patches SET status = ? WHERE patch_id = ?",
-            (status, patch_id),
-        )
-        conn.commit()
-
     # --- ResearchSignal ---
 
     def _insert_signal_sqlite(self, signal: ResearchSignal) -> None:
@@ -563,7 +466,6 @@ class ContractStore:
         conn.executescript("""
             DROP TABLE IF EXISTS outcome_records;
             DROP TABLE IF EXISTS improvement_recommendations;
-            DROP TABLE IF EXISTS persona_patches;
             DROP TABLE IF EXISTS research_signals;
         """)
         self._ensure_tables()
@@ -572,8 +474,6 @@ class ContractStore:
             self._insert_outcome_sqlite(record)
         for rec in self.read_recommendations(limit=10000):
             self._insert_recommendation_sqlite(rec)
-        for patch in self.read_patches(limit=10000):
-            self._insert_patch_sqlite(patch)
         for signal in self.read_signals(limit=10000):
             self._insert_signal_sqlite(signal)
 

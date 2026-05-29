@@ -24,7 +24,6 @@ def report_status() -> None:
     # Use query_* methods (SQLite) for status-aware data
     outcomes = store.query_outcomes(limit=10000)
     all_recs = store.query_recommendations(limit=10000)
-    all_patches = store.query_patches(limit=10000)
 
     # Categorize recommendations by status and target
     pending_recs = store.query_recommendations(status="pending", limit=10000)
@@ -32,11 +31,6 @@ def report_status() -> None:
     persona_recs = [r for r in pending_recs if r.target_system == "persona"]
     claude_md_recs = [r for r in pending_recs if r.target_system == "claude_md"]
     pipeline_recs = [r for r in pending_recs if r.target_system == "pipeline"]
-
-    # Categorize patches by status
-    proposed_patches = store.query_patches(status="proposed", limit=10000)
-    applied_patches = store.query_patches(status="applied", limit=10000)
-    rejected_patches = store.query_patches(status="rejected", limit=10000)
 
     # Outcome distribution
     outcome_counts: dict[str, int] = {}
@@ -47,16 +41,6 @@ def report_status() -> None:
     oldest_rec = None
     if pending_recs:
         oldest_rec = min(r.emitted_at for r in pending_recs)
-
-    oldest_patch = None
-    if proposed_patches:
-        oldest_patch = min(p.emitted_at for p in proposed_patches)
-
-    # Count completed cycles (outcome -> recommendation -> patch applied)
-    patch_source_ids = set()
-    for p in applied_patches:
-        patch_source_ids.update(p.source_recommendation_ids)
-    completed_cycles = len(patch_source_ids)
 
     # Print report
     print("=" * 60)
@@ -74,20 +58,9 @@ def report_status() -> None:
     print(f"    - Pending (pipeline):    {len(pipeline_recs)}")
     print(f"    - Applied:               {len(applied_recs)}")
 
-    print(f"\n  Persona Patches:           {len(all_patches)}")
-    print(f"    - Proposed (review):     {len(proposed_patches)}")
-    print(f"    - Applied:               {len(applied_patches)}")
-    print(f"    - Rejected:              {len(rejected_patches)}")
-
-    print(f"\n  Completed Feedback Cycles: {completed_cycles}")
-
     if oldest_rec:
         age = datetime.now() - oldest_rec
         print(f"  Oldest Pending Rec:        {age.days}d {age.seconds // 3600}h ago")
-
-    if oldest_patch:
-        age = datetime.now() - oldest_patch
-        print(f"  Oldest Pending Patch:      {age.days}d {age.seconds // 3600}h ago")
 
     # Research signals
     all_signals = store.query_signals(limit=10000)
@@ -114,15 +87,11 @@ def report_status() -> None:
     # Health check
     print("\n  Health:")
     if not outcomes:
-        print("    [!] No outcome records yet - run ideas through UM pipeline")
+        print("    [!] No outcome records yet - run ideas through Metroplex pipeline")
     elif not all_recs:
         print("    [!] No recommendations yet - run Sky-Lynx analyzer")
-    elif not all_patches and persona_recs:
-        print("    [!] Persona recommendations waiting - run persona_upgrader")
-    elif proposed_patches:
-        print(f"    [!] {len(proposed_patches)} patches awaiting human review")
-    elif completed_cycles > 0:
-        print("    [OK] Loop has completed cycles - running end-to-end")
+    elif pending_recs:
+        print(f"    [!] {len(pending_recs)} recommendations pending")
     else:
         print("    [OK] Loop is flowing")
 

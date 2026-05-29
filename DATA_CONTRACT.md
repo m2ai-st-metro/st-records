@@ -60,22 +60,9 @@ Sky-Lynx generated recommendations for system improvement.
 
 **Recommendation types:** `voice_adjustment`, `framework_addition`, `framework_refinement`, `validation_marker_change`, `case_study_addition`, `constraint_addition`, `constraint_removal`, `claude_md_update`, `pipeline_change`, `tier_promotion`, `tier_demotion`, `other`
 
-### `persona_patches`
+### `persona_patches` (DEAD — retired 2026-05-28)
 
-Persona YAML upgrade patches generated from recommendations.
-
-| Column | Type | Constraints | Description |
-|--------|------|-------------|-------------|
-| `id` | INTEGER | PRIMARY KEY AUTOINCREMENT | Internal row ID |
-| `patch_id` | TEXT | NOT NULL UNIQUE | Unique identifier |
-| `persona_id` | TEXT | NOT NULL | Target persona (e.g. `sky-lynx`) |
-| `rationale` | TEXT | nullable | Why this patch was generated |
-| `from_version` | TEXT | nullable | Previous persona version |
-| `to_version` | TEXT | nullable | New persona version |
-| `schema_valid` | INTEGER | DEFAULT 1 | 1=valid, 0=invalid Academy schema |
-| `status` | TEXT | DEFAULT 'proposed' | `proposed`, `applied`, `rejected` |
-| `emitted_at` | TEXT | NOT NULL | ISO-8601 timestamp |
-| `raw_json` | TEXT | NOT NULL | Full contract as JSON |
+> The persona-template upgrade flow was retired. The table physically remains in `persona_metrics.db` (untouched) but the `ContractStore` no longer reads or writes it, and no live consumer depends on it. Dead code cold-archived at `~/projects/skill-forge/archive/st-records-persona-templates-2026-05-28/`. Do not build new consumers against this table.
 
 ### `research_signals`
 
@@ -107,8 +94,9 @@ All in `data/`. Append-only, git-tracked, one JSON record per line.
 |------|----------|---------------|
 | `outcome_records.jsonl` | OutcomeRecord | `store.write_outcome()`, `store.read_outcomes()` |
 | `improvement_recommendations.jsonl` | ImprovementRecommendation | `store.write_recommendation()`, `store.read_recommendations()` |
-| `persona_patches.jsonl` | PersonaUpgradePatch | `store.write_patch()`, `store.read_patches()` |
 | `research_signals.jsonl` | ResearchSignal | `store.write_signal()`, `store.read_signals()` |
+
+> `persona_patches.jsonl` is retained on disk (historical) but the store no longer reads/writes it — the persona-template flow was retired 2026-05-28.
 
 ## Dual-Write Architecture
 
@@ -128,13 +116,6 @@ pending → dispatched → applied
                     → rejected
 ```
 
-### PersonaUpgradePatch
-```
-proposed → applied
-         → rejected
-```
-Human review required between states (via `scripts/review_patch.py`).
-
 ### OutcomeRecord
 No mutable status — `outcome` is terminal: `published`, `rejected`, `deferred`, `build_failed`, `feature_backlog`.
 
@@ -143,11 +124,9 @@ No mutable status — `consumed_by` tracks downstream consumption.
 
 ## Reader Contracts
 
-### Metroplex (`readers/st_records_reader.py`)
+### Metroplex (`readers/skylynx_reader.py`)
 
-**Reads:** `persona_patches` table (opens with `?mode=ro`). Retrieves patches with `status='proposed'` for Gate 3.
-
-**Writes:** Updates `persona_patches.status` to `applied` or `rejected` after processing.
+**Reads:** `improvement_recommendations` / `outcome_records` from `persona_metrics.db` (opens with `?mode=ro`).
 
 ### Sky-Lynx (`src/sky_lynx/`)
 
@@ -157,15 +136,11 @@ No mutable status — `consumed_by` tracks downstream consumption.
 
 ### ClaudeClaw
 
-**Reads:** `persona_metrics.db` for dashboard reporting (research signal age, metrics).
-
-### FastAPI Dashboard (`api/main.py`)
-
-**Reads:** All four tables in `persona_metrics.db`. Never writes. Endpoints: `/api/v1/activity`, `/api/v1/ecosystem`, `/api/v1/nodes`, `/api/v1/agents`, `/api/v1/pipeline`, `/api/v1/research`.
+**Reads:** `persona_metrics.db` for reporting (research signal age, metrics).
 
 ## Writer Contracts
 
-### Ultra-Magnus (`um_bridge_worker.py::emit_outcome_record()`)
+### Metroplex (`outcome_emitter.py`)
 
 **Writes:** `OutcomeRecord` contracts when an idea reaches terminal pipeline state. Uses `store.write_outcome()` (dual-write to JSONL + SQLite). Includes full IdeaForge scores in `raw_json`.
 
@@ -177,9 +152,7 @@ No mutable status — `consumed_by` tracks downstream consumption.
 
 **Writes:** `ResearchSignal` contracts from daily cron agents (one per LLM). Uses `store.write_signal()`.
 
-### persona_upgrader (`scripts/persona_upgrader.py`)
-
-**Writes:** `PersonaUpgradePatch` contracts from pending recommendations where `target_system='persona'`. Uses Claude API to generate patches. Default status: `proposed`.
+> **Retired 2026-05-28:** the `persona_upgrader` writer and FastAPI dashboard reader were removed (no live consumer). Cold-archived at `~/projects/skill-forge/archive/st-records-persona-templates-2026-05-28/`.
 
 ## Importing Contracts
 

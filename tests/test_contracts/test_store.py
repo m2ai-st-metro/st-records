@@ -10,11 +10,6 @@ from contracts.improvement_recommendation import (
     RecommendationType,
 )
 from contracts.outcome_record import OutcomeRecord, TerminalOutcome
-from contracts.persona_upgrade_patch import (
-    PatchOperation,
-    PersonaFieldPatch,
-    PersonaUpgradePatch,
-)
 from contracts.store import ContractStore
 
 
@@ -115,54 +110,6 @@ class TestContractStoreRecommendations:
 
         recs = store.query_recommendations(status="applied")
         assert len(recs) == 1
-
-
-class TestContractStorePatches:
-
-    def test_write_and_read_patch(self, store):
-        patch = PersonaUpgradePatch(
-            patch_id="patch-001",
-            persona_id="christensen",
-            patches=[
-                PersonaFieldPatch(
-                    operation=PatchOperation.ADD,
-                    path="/voice/phrases/-",
-                    value="New phrase",
-                ),
-            ],
-            rationale="Test patch",
-        )
-        store.write_patch(patch)
-
-        patches = store.read_patches()
-        assert len(patches) == 1
-        assert patches[0].patch_id == "patch-001"
-
-    def test_query_by_persona(self, store):
-        store.write_patch(PersonaUpgradePatch(
-            patch_id="p1", persona_id="christensen",
-            patches=[PersonaFieldPatch(operation=PatchOperation.ADD, path="/test", value="a")],
-            rationale="A",
-        ))
-        store.write_patch(PersonaUpgradePatch(
-            patch_id="p2", persona_id="porter",
-            patches=[PersonaFieldPatch(operation=PatchOperation.ADD, path="/test", value="b")],
-            rationale="B",
-        ))
-
-        christensen = store.query_patches(persona_id="christensen")
-        assert len(christensen) == 1
-
-    def test_update_patch_status(self, store):
-        store.write_patch(PersonaUpgradePatch(
-            patch_id="p1", persona_id="test",
-            patches=[PersonaFieldPatch(operation=PatchOperation.ADD, path="/test", value="a")],
-            rationale="Test",
-        ))
-        store.update_patch_status("p1", "applied")
-
-        patches = store.query_patches(status="applied")
-        assert len(patches) == 1
 
 
 class TestContractStoreRebuild:
