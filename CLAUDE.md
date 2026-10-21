@@ -36,6 +36,7 @@ tests/                  # Contract tests
 - **JSONL as source of truth** - append-only, git-tracked, human-readable
 - **SQLite as query layer** - rebuildable from JSONL at any time
 - **Contracts defined here, imported by layers** - single source of truth for schemas
+- **Not pip-installable** - consumers (research-agents, sky-lynx) import contracts via `sys.path` injection, not `pip install`
 - **Weekly cadence** - matches Sky-Lynx's existing cron schedule
 
 ## Data Flow

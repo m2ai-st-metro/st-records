@@ -57,7 +57,7 @@ Metroplex (L5 autonomy coordinator — built, awaiting pipeline data)
 | ClaudeClaw "Data" | `projects/claudeclaw/` | Built (Phase 7 in progress) | Telegram bot, Claude Code backend, multi-LLM routing, Arcade MCP |
 | Clawdbot "Chad" | External (GPT-5.2) | Running | Independent multi-agent system at `@m2ai_chad_bot` |
 | Metroplex | `projects/metroplex/` | Built (idle) | L5 autonomy coordinator — 3 gates (triage/build/patch), circuit breaker, systemd service. Awaiting pipeline data. |
-| AlienPC | `ssh matth@10.0.0.35` | Online | RTX 5080, Unity, ComfyUI — GPU workstation for games, image/video gen, VR |
+| AlienPC | `ssh gaming-pc` | Online | RTX 5080, Unity, ComfyUI — GPU workstation for games, image/video gen, VR |
 
 ---
 
@@ -310,7 +310,7 @@ cd ~/projects/yce-harness && source venv/bin/activate && python autonomous_agent
 cd ~/projects/ultra-magnus/idea-factory && source .venv/bin/activate && uvicorn src.main:app --reload
 
 # AlienPC
-ssh -i ~/.ssh/gaming_pc_key matth@10.0.0.35
+ssh gaming-pc
 
 # Metroplex
 cd ~/projects/metroplex && source venv/bin/activate
